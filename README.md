@@ -140,7 +140,7 @@ AverageUserSalary.value(month: Time.now, scope: Organisation.first)
 
 ## API
 
-## `count` method
+### count
 
 This method is used to define a counter.
 
@@ -155,6 +155,17 @@ This method is used to define a counter.
 | `if_async` | lambda, optional | Boolean. Similar to `if`, but executed asynchronously. Allows to not slow down `INSERT` or `UPDATE` statements. Useful if your `if` calls complex model relationships |
 | `decrement_if` | lambda, optional | Boolean. If it returns true, then the counter will be decremented instead of incremented |
 | `uniq_by` | lambda, optional | Won't count the same value twice. By default it is uniq on the `id`. Example use case: if a `Post` is written by an `author_id`, you could set `-> { post.author_id}` to know how many authors wrote an article this month |
+
+### aggregate
+
+This method is used to define an aggregate counter.
+> Note that every `lambda` option is executed in the context of the counter instance. You can access the model instance under the model instance name. For instance `user` for a `User` model.
+
+> An aggregate counter has the same options as a basic counter, but also has the following options:
+
+| Parameter  | Type          | Description                                                 |
+|------------|---------------|-------------------------------------------------------------|
+| `value`    | lambda        | The value to aggregate that will be used to compute the average or sum.  |
 
 
 ## Class methods
