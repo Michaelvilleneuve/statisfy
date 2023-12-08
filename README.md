@@ -1,30 +1,104 @@
 # Statisfy
 
-TODO: Delete this and the text below, and describe your gem
+[![Gem Version](https://badge.fury.io/rb/statisfy.svg)](https://badge.fury.io/rb/statisfy)
 
-Welcome to your new gem! In this directory, you'll find the files you need to be able to package up your Ruby library into a gem. Put your Ruby code in the file `lib/statisfy`. To experiment with that code, run `bin/console` for an interactive prompt.
+This gem allows you to easily create performant statistics for your ActiveRecord models without having to write and run complex SQL queries.
+
+By leveraging the power of Redis, Statisfy elegantly manages counters so that you can use them with ease. 
 
 ## Installation
 
-TODO: Replace `UPDATE_WITH_YOUR_GEM_NAME_PRIOR_TO_RELEASE_TO_RUBYGEMS_ORG` with your gem name right after releasing it to RubyGems.org. Please do not do it earlier due to security reasons. Alternatively, replace this section with instructions to install your gem from git if you don't plan to release to RubyGems.org.
+Add this line to your application's Gemfile:
 
-Install the gem and add to the application's Gemfile by executing:
+```ruby
+gem 'statisfy'
+```
 
-    $ bundle add UPDATE_WITH_YOUR_GEM_NAME_PRIOR_TO_RELEASE_TO_RUBYGEMS_ORG
+Execute
 
-If bundler is not being used to manage dependencies, install the gem by executing:
+```bash
+$ bundle install
+```
 
-    $ gem install UPDATE_WITH_YOUR_GEM_NAME_PRIOR_TO_RELEASE_TO_RUBYGEMS_ORG
+Then add the following to a `config/initializers/statisfy.rb` file:
 
+```ruby
+Statisfy.configure do |config|
+  # This is the Redis client that will be used to store counters
+  config.redis_client = Redis.new
+
+  # If you want to use Sidekiq to update counters in the background
+  # This is optional, but recommended for performance reasons
+  # Anything you add to this block will be executed in the context of the
+  # Sidekiq worker that updates the counters
+  #
+  config.append_to_counters = ->(_) { include Sidekiq::Worker }
+
+  # This allows you to define the default scopes for your counters
+  # This is simply to avoid having to define the same scopes over and over
+  # again for each counter
+  config.default_scopes = -> { [subject.organisation, subject.department] }
+end
+
+# The following is important because it ensures that all counters are loaded
+# and can start listening events without having to require them manually.
+Rails.application.config.after_initialize do
+
+  # You can put your counters anywhere you want, as long as they are loaded
+  Dir[Rails.root.join("app/stats/counters/**/*.rb")].each { |file| require file }
+end
+```
 ## Usage
 
-TODO: Write usage instructions here
+### Defining a simple counter
+
+This will simply increment the counter every time a `User` is created.
+
+```ruby
+class UsersCreated
+  include Statisfy::Counter
+
+  count every: :user_created
+end
+
+# Anytime a user is created, the counter will be incremented
+User.create(name: "John Doe")
+
+# And then get the count like this:
+UsersCreated.value
+# => 1
+
+
+# You can also get the count for a specific month
+UsersCreated.value(month: Time.now)
+
+# Or get a graph of values grouped by month
+# By default it returns the last 24 months
+UsersCreated.values_grouped_by_month(stop_at: Time.now.last_month.end_of_month, start_at: Time.now.last_year)
+# => 
+# [
+#   { month: "2023-01", value: 766 },
+#   { month: "2023-02", value: 1246 },
+#   ...
+# ]
+```
+
+### Defining a counter with a scope
+
+Imagine you have a `User` model that belongs to an `Organisation` and you want to count the number of users created per organisation.
+
+```ruby
+class UsersCreated
+  include Statisfy::Counter
+
+  count every: :user_created,
+        scopes: -> { [user.organisation] }
+end
+
 
 ## Development
 
-After checking out the repo, run `bin/setup` to install dependencies. You can also run `bin/console` for an interactive prompt that will allow you to experiment.
-
-To install this gem onto your local machine, run `bundle exec rake install`. To release a new version, update the version number in `version.rb`, and then run `bundle exec rake release`, which will create a git tag for the version, push git commits and the created tag, and push the `.gem` file to [rubygems.org](https://rubygems.org).
+After checking out the repo, run `bundle` and the `bundle rake` to run the test suite.
 
 ## Contributing
 
