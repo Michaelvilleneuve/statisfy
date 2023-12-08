@@ -5,7 +5,7 @@
 
 This gem allows you to easily create performant statistics for your ActiveRecord models without having to write and run complex SQL queries.
 
-By leveraging the power of Redis, Statisfy elegantly manages counters so that you can use them with ease. 
+By leveraging the power of Redis, Statisfy elegantly manages counters in the background so that you can use them with ease. 
 
 ## Installation
 
