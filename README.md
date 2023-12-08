@@ -49,7 +49,7 @@ Rails.application.config.after_initialize do
   Dir[Rails.root.join("app/stats/counters/**/*.rb")].each { |file| require file }
 end
 ```
-## Usage
+## Simple usage
 
 ### Defining a simple counter
 
@@ -107,7 +107,7 @@ UsersCreated.value(scope: Organisation.first)
 UsersCreated.values_grouped_by_month(scope: Organisation.first)
 ```
 
-### Defining an aggregation type counter
+### Defining an aggregation based stat
 
 This is useful when you want to get an average or sum of a value.
 
@@ -135,13 +135,82 @@ AverageUserSalary.sum
 AverageUserSalary.value(month: Time.now, scope: Organisation.first)
 ```
 
+## API
+
+## `count` method
+
+This method is used to define a counter.
+
+| Parameter  | Type          | Description                                                 |
+|------------|---------------|-------------------------------------------------------------|
+| `every`    | Array<:#{model_name}_(created|updated|destroyed)>        | The event(s) that will trigger the counter. Note that the model is deduced from the event name. For instance :user_created will catch every `User.create!`. :user_destroyed will catch every `user.destroy!` |
+| `scopes`   | lambda | This proc should return an array of scopes to take into account. For instance, if a model `Post` has many `authors`, then `-> { post.authors }` would allow you to know the # of post that each author wrote. It is executed as a counter instance. You'll have access to the model instance under the model instance name. For instance `user` for a `User` model.  |
+| `if`      | lambda, optional | This proc should return a boolean. If it returns false, the counter will not be incremented. Here you have access to your instance `.previous_changes` which allows you to increment only upon certain changes. This proc is executed as a counter instance. You'll have access to the model instance under the model instance name. For instance `user` for a `User` model. |
+| `if_async` | lambda, optional | Similar to `if` option, but executed asynchronously, this allows to avoid slowing down `INSERT` and `UPDATE` statements. This is useful when you `if` calls complex model relationships |
+| `decrement_if` | lambda, optional | This proc should return a boolean. If it returns true, then the counter will be decremented instead of incremented. This proc is executed as a counter instance. You'll have access to the model instance under the model instance name. For instance `user` for a `User` model. |
+| `uniq_by` | lambda, optional | This allows you to avoid counting multiple times the same model instance. By default it is uniq on the `id`. Example : if you have a `Post` model that is writter by an `author_id`, you could set `-> { post.author_id}` to know how many authors wrote an article this month. |
+
+
+## Class methods
+
+### .values_grouped_by_month
+
+This method returns a hash containing the months and the values of the counter for that month.
+If you want to use this method outside of a counter, you can include `include Statisfy::Monthly` which contains this method only.
+
+
+| Parameter  | Type          | Description                                                 |
+|------------|---------------|-------------------------------------------------------------|
+| `scope`    | Object        | The scope of the counter, which can be an Organisation or a Department. |
+| `start_at` | Date, optional| The date from which you want to start counting. If not provided, counts from the beginning. |
+| `stop_at`  | Date, optional| The date at which you want to stop counting. If not provided, counts up to the current date. |
+
+Returns 
+
+```ruby
+{
+  "2023/01", value: 766,
+  "2023/02", value: 1246,
+  ...
+}
+```
+
+### .value
+
+This method returns the value of the counter.
+
+| Parameter  | Type          | Description                                                 |
+|------------|---------------|-------------------------------------------------------------|
+| `scope`    | Object        | The scope of the counter, which can be an Organisation or a Department. |
+| `month`    | Date, optional| The month for which you want to get the value. If not provided, returns the value for the current month. |
+
+### .sum
+
+This method returns the sum of the values of the counter.
+/!\ This method is only available for counters that use the `Statisfy::Aggregate` module.
+
+| Parameter  | Type          | Description                                                 |
+|------------|---------------|-------------------------------------------------------------|
+| `scope`    | Object        | The scope of the counter, which can be an Organisation or a Department. |
+| `month`    | Date, optional| The month for which you want to get the value. If not provided, returns the value for the current month. |
+
+### .average
+
+This method returns the average of the values of the counter.
+/!\ This method is only available for counters that use the `Statisfy::Aggregate` module.
+
+| Parameter  | Type          | Description                                                 |
+|------------|---------------|-------------------------------------------------------------|
+| `scope`    | Object        | The scope of the counter, which can be an Organisation or a Department. |
+| `month`    | Date, optional| The month for which you want to get the value. If not provided, returns the value for the current month. |
+
 ## Development
 
 After checking out the repo, run `bundle` and the `bundle rake` to run the test suite.
 
 ## Contributing
 
-Bug reports and pull requests are welcome on GitHub at https://github.com/[USERNAME]/statisfy.
+Bug reports and pull requests are welcome on GitHub at https://github.com/Michaelvilleneuve/statisfy.
 
 ## License
 
