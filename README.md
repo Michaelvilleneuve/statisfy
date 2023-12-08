@@ -178,7 +178,7 @@ If you want to use this method outside of a counter, you can include `include St
 
 | Parameter  | Type          | Description                                                 |
 |------------|---------------|-------------------------------------------------------------|
-| `scope`    | Object        | The scope of the counter, which can be an Organisation or a Department. |
+| `scope`    | Object, optional     | The scope of the counter. See scope option above |
 | `start_at` | Date, optional| The date from which you want to start counting. If not provided, counts from the beginning. |
 | `stop_at`  | Date, optional| The date at which you want to stop counting. If not provided, counts up to the current date. |
 
@@ -198,7 +198,7 @@ This method returns the value of the counter.
 
 | Parameter  | Type          | Description                                                 |
 |------------|---------------|-------------------------------------------------------------|
-| `scope`    | Object        | The scope of the counter, which can be an Organisation or a Department. |
+| `scope`    | ActiveRecord instance, optional | The scope of the counter. See scope option above |
 | `month`    | Date, optional| The month for which you want to get the value. If not provided, returns the value for the current month. |
 
 ### .sum
@@ -208,7 +208,7 @@ This method returns the sum of the values of the counter.
 
 | Parameter  | Type          | Description                                                 |
 |------------|---------------|-------------------------------------------------------------|
-| `scope`    | Object        | The scope of the counter, which can be an Organisation or a Department. |
+| `scope`    | ActiveRecord instance, optional | The scope of the counter. See scope option above |
 | `month`    | Date, optional| The month for which you want to get the value. If not provided, returns the value for the current month. |
 
 ### .average
@@ -218,7 +218,7 @@ This method returns the average of the values of the counter.
 
 | Parameter  | Type          | Description                                                 |
 |------------|---------------|-------------------------------------------------------------|
-| `scope`    | Object        | The scope of the counter, which can be an Organisation or a Department. |
+| `scope`    | ActiveRecord instance, optional | The scope of the counter. See scope option above |
 | `month`    | Date, optional| The month for which you want to get the value. If not provided, returns the value for the current month. |
 
 ## Development
