@@ -56,6 +56,9 @@ end
 This will simply increment the counter every time a `User` is created.
 
 ```ruby
+# Define a class, and include the Statisfy::Counter module
+# You can put this class anywhere you want, as long as it is loaded by the initializer
+# See the Installation section for more details
 class UsersCreated
   include Statisfy::Counter
 
@@ -77,11 +80,11 @@ UsersCreated.value(month: Time.now)
 # By default it returns the last 24 months
 UsersCreated.values_grouped_by_month(stop_at: Time.now.last_month.end_of_month, start_at: Time.now.last_year)
 # => 
-# [
-#   { month: "2023-01", value: 766 },
-#   { month: "2023-02", value: 1246 },
-#   ...
-# ]
+# {
+#   "2023/01", value: 766,
+#   "2023/02", value: 1246,
+#   ... 
+# }
 ```
 
 ### Defining a counter with a scope
