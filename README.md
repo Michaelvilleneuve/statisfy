@@ -149,7 +149,7 @@ This method is used to define a counter.
 
 | Parameter  | Type          | Description                                                 |
 |------------|---------------|-------------------------------------------------------------|
-| `every`    | Array<model_name_(created,updated,destroyed)>        | The event(s) that will trigger the counter. The model is deduced from the event name. `:user_created` will catch every `User.create!` |
+| `every`    | Array<symbols>        | The event(s) that will trigger the counter. `model_(created/updated/destroyed)`. The model is deduced from the event name. `:user_created` will catch every `User.create!` |
 | `scopes`   | lambda, optional | Array of scopes to take into account. For instance, if a model `Post` has_many `authors`, then setting `-> { post.authors }` will tell you how many authors wrote a post |
 | `if`      | lambda, optional | Boolean. If it returns false, the counter will not be incremented. You have access to your instance `.previous_changes` which allows you to increment only upon certain changes. |
 | `if_async` | lambda, optional | Boolean. Similar to `if`, but executed asynchronously. Allows to not slow down `INSERT` or `UPDATE` statements. Useful if your `if` calls complex model relationships |
