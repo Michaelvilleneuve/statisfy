@@ -95,6 +95,44 @@ class UsersCreated
         scopes: -> { [user.organisation] }
 end
 
+# This will increment the counter for the organisation of the user (and also the global one)
+User.create(name: "John Doe", organisation: Organisation.first)
+
+# And then get the count like this:
+UsersCreated.value(scope: Organisation.first)
+# => 1
+
+# Or get a graph of values grouped by month
+UsersCreated.values_grouped_by_month(scope: Organisation.first)
+```
+
+### Defining an aggregation type counter
+
+This is useful when you want to get an average or sum of a value.
+
+```ruby
+class AverageUserSalary
+  include Statisfy::Aggregate
+
+  aggregate every: :user_created,
+            value: -> { user.salary }
+end
+
+User.create(name: "John Doe", salary: 1000)
+User.create(name: "Jane Doe", salary: 2000)
+
+
+# This will return the average salary of all users
+AverageUserSalary.value
+# => 1500
+
+# This will return the sum of all salaries
+AverageUserSalary.sum
+# => 3000
+
+# You can also get the average salary for a specific month, scope, etc
+AverageUserSalary.value(month: Time.now, scope: Organisation.first)
+```
 
 ## Development
 
