@@ -1,4 +1,3 @@
-require "pry"
 module Statisfy
   module Subscriber
     def self.included(klass)
@@ -21,11 +20,12 @@ module Statisfy
         statisfy_counter = lambda {
           counter = listener.new
           counter.subject = self
+          counter.params = attributes
           counter
         }
 
         trigger_event = lambda { |statisfy_trigger|
-          if listener.respond_to?(Statisfy.configuration.default_async_method)
+          if listener.respond_to?(Statisfy.configuration.default_async_method) && statisfy_trigger != :destroy
             listener.send(Statisfy.configuration.default_async_method, attributes.merge(statisfy_trigger:))
           else
             instance_exec(&statisfy_counter).perform(attributes.merge(statisfy_trigger:))
