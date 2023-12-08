@@ -51,7 +51,7 @@ end
 ```
 ## Simple usage
 
-### Defining a simple counter
+### Basic counter
 
 This will simply increment the counter every time a `User` is created.
 
@@ -87,7 +87,7 @@ UsersCreated.values_grouped_by_month(stop_at: Time.now.last_month.end_of_month, 
 # }
 ```
 
-### Defining a counter with a scope
+### Scoped counter
 
 Imagine you have a `User` model that belongs to an `Organisation` and you want to count the number of users created per organisation.
 
@@ -110,7 +110,7 @@ UsersCreated.value(scope: Organisation.first)
 UsersCreated.values_grouped_by_month(scope: Organisation.first)
 ```
 
-### Defining an aggregation based stat
+### Aggregation based statistics
 
 This is useful when you want to get an average or sum of a value.
 
