@@ -14,9 +14,9 @@ Gem::Specification.new do |s|
   s.license     = "MIT"
   s.add_development_dependency "activerecord", "~> 7.0.4.3"
   s.add_development_dependency "activesupport", "~> 7.0.4.3"
+  s.add_development_dependency "pry", "~> 0.14.1"
   s.add_development_dependency "redis", "~> 4.8.1"
   s.add_development_dependency "redis-client", "~> 0.17.0"
   s.add_development_dependency "rubocop", "~> 1.49.0"
   s.add_development_dependency "sqlite3", "~> 1.6.9"
-  s.add_development_dependency "pry", "~> 0.14.1"
 end

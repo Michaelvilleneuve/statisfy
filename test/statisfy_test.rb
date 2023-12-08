@@ -204,7 +204,7 @@ class StatisfyTest < ActiveSupport::TestCase
 
   test "aggregate option allows to aggregate instead of increment and get an average" do
     class SalaryPerUser
-      include Statisfy::Counter
+      include Statisfy::Aggregate
 
       aggregate every: :user_created, value: -> { user.salary }
     end

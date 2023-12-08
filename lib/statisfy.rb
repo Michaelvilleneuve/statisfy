@@ -2,6 +2,8 @@
 
 require_relative "statisfy/configuration"
 require_relative "statisfy/counter"
+require_relative "statisfy/aggregate"
+require_relative "statisfy/monthly"
 
 module Statisfy
   class Error < StandardError; end
