@@ -32,6 +32,10 @@ module Statisfy
         class_eval(&Statisfy.configuration.append_to_counters) if Statisfy.configuration.append_to_counters.present?
       end
 
+      def aggregate(args = {})
+        count(args.merge(type: :average))
+      end
+
       #
       # This method serves as a syntactic sugar
       # The below methods could be written directly in the class definition
@@ -39,7 +43,7 @@ module Statisfy
       #
       def apply_default_counter_options(args)
         define_method(:identifier, args[:uniq_by] || -> { params["id"] })
-        define_method(:scopes, args[:scopes]) if args[:scopes].present?
+        define_method(:scopes, args[:scopes] || Statisfy.configuration.default_scopes || -> { [] })
         define_method(:if_async, args[:if_async] || -> { true })
         define_method(:decrement?, args[:decrement_if] || -> { false })
         define_method(:value, args[:value] || -> {})
@@ -56,23 +60,31 @@ module Statisfy
       # @param scope: the scope of the counter (an Organisation or a Department)
       # @param month: the month for which you want the value of the counter (optional)
       #
-      def value(scope:, month: nil)
+      def value(scope: nil, month: nil)
+        month = month&.strftime("%Y-%m") if month.present?
         if const_get(:COUNTER_TYPE) == :average
-          average_for(scope:, month:)
+          average(scope:, month:)
         else
-          number_of_elements_in(scope:, month:)
+          size(scope:, month:)
         end
       end
 
-      def number_of_elements_in(scope:, month: nil, group: nil)
-        redis_client.scard(key_for(group:, scope:, month:))
+      def size(scope: nil, month: nil)
+        redis_client.scard(key_for(scope:, month:))
       end
 
       #
       # Returns the list of elements in the set (in case you use .append and not .increment)
       #
-      def elements_in(scope:, month: nil, group: nil)
-        redis_client.lrange(key_for(group:, scope:, month:), 0, -1)
+      def elements_in(scope: nil, month: nil)
+        redis_client.lrange(key_for(scope:, month:), 0, -1)
+      end
+
+      def sum(scope: nil, month: nil)
+        stored_values = elements_in(scope:, month:)
+        return 0 if stored_values.empty?
+
+        stored_values.map(&:to_i).reduce(:+)
       end
 
       #
@@ -80,9 +92,10 @@ module Statisfy
       # Example:
       # append(value: 1)
       # append(value: 2)
-      # average_for(scope: Organisation.first) # => 1.5
+      # average
+      # => 1.5
       #
-      def average_for(scope:, month: nil)
+      def average(scope: nil, month: nil)
         stored_values = elements_in(scope:, month:)
         return 0 if stored_values.empty?
 
@@ -92,13 +105,12 @@ module Statisfy
       #
       # This is the name of the Redis key that will be used to store the counter
       #
-      def key_for(scope:, month: nil, group: nil)
+      def key_for(scope:, month: nil)
         {
           counter: name.demodulize.underscore,
-          group:,
           month:,
-          scope_type: scope.class.name,
-          scope_id: scope.id
+          scope_type: scope&.class&.name,
+          scope_id: scope&.id
         }.to_json
       end
 
@@ -118,22 +130,22 @@ module Statisfy
       # @param start_at: the date from which you want to start counting (optional)
       # @param stop_at: the date at which you want to stop counting (optional)
       #
-      def values_grouped_by_month(scope:, start_at: nil, stop_at: nil)
-        x_months = 24
+      def values_grouped_by_month(scope: nil, start_at: nil, stop_at: nil)
+        n_months = 24
 
         if start_at.present? || scope&.created_at.present?
           start_at ||= scope.created_at
-          x_months = ((Time.zone.today.year * 12) + Time.zone.today.month) - ((start_at.year * 12) + start_at.month)
+          n_months = (Time.zone.today.year + Time.zone.today.month) - (start_at.year + start_at.month)
         end
 
-        relevant_months = (0..x_months).map do |i|
-          (x_months - i).months.ago.beginning_of_month
+        relevant_months = (0..n_months).map do |i|
+          (n_months - i).months.ago.beginning_of_month
         end
 
         relevant_months
           .filter { |month| stop_at.blank? || month < stop_at }
           .to_h do |month|
-          [month.strftime("%m/%Y"), value(scope:, month: month.strftime("%Y-%m")).round(2)]
+          [month.strftime("%m/%Y"), value(scope:, month:).round(2)]
         end
       end
       # rubocop:enable Metrics/AbcSize
@@ -155,24 +167,25 @@ module Statisfy
       # Returns the list of all the keys of this counter for a given scope (optional)
       # and a given month (optional)
       #
-      def all_keys(scope: nil, month: nil, group: nil)
+      # rubocop:disable Metrics/AbcSize
+      def all_keys(scope: nil, month: nil)
         redis_client.keys("*\"counter\":\"#{name.demodulize.underscore}\"*").filter do |json|
           key = JSON.parse(json)
 
           scope_matches = scope.nil? || (key["scope_type"] == scope.class.name && key["scope_id"] == scope.id)
           month_matches = month.nil? || key["month"] == month
-          group_matches = group.nil? || key["group"] == group
 
-          scope_matches && month_matches && group_matches
+          scope_matches && month_matches
         end
       end
+      # rubocop:enable Metrics/AbcSize
 
       #
       # This allows to reset all the counters for a given scope (optional)
       # and a given month (optional)
       #
-      def reset(scope: nil, month: nil, group: nil)
-        all_keys(scope:, month:, group:).each do |key|
+      def reset(scope: nil, month: nil)
+        all_keys(scope:, month:).each do |key|
           redis_client.del(key)
         end
 
@@ -183,15 +196,11 @@ module Statisfy
     protected
 
     def scopes_with_global
-      (scopes + [Department.new]).flatten.compact
+      scopes.flatten.compact << nil
     end
 
     def month_to_set
       params["created_at"].to_date.strftime("%Y-%m")
-    end
-
-    def scopes
-      [subject.department, subject.organisation]
     end
 
     def process_event
@@ -208,22 +217,22 @@ module Statisfy
     # This allows to iterate over all the counters that need to be updated
     # (in general the Department(s) and Organisation(s) for both the current month and the global counter)
     #
-    def all_counters_of(group:)
+    def all_counters
       [month_to_set, nil].each do |month|
         scopes_with_global.each do |scope|
-          yield self.class.key_for(group:, scope:, month:), identifier
+          yield self.class.key_for(scope:, month:), identifier
         end
       end
     end
 
-    def increment(group: nil)
-      all_counters_of(group:) do |key, id|
+    def increment
+      all_counters do |key, id|
         self.class.redis_client.sadd?(key, id)
       end
     end
 
-    def decrement(group: nil)
-      all_counters_of(group:) do |key, id|
+    def decrement
+      all_counters do |key, id|
         self.class.redis_client.srem?(key, id)
       end
     end
@@ -231,8 +240,8 @@ module Statisfy
     #
     # To be used to store a list of values instead of a basic counter
     #
-    def append(value:, group: nil)
-      all_counters_of(group:) do |key|
+    def append(value:)
+      all_counters do |key|
         self.class.redis_client.rpush(key, value)
       end
     end
