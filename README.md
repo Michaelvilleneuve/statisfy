@@ -144,14 +144,17 @@ AverageUserSalary.value(month: Time.now, scope: Organisation.first)
 
 This method is used to define a counter.
 
+> Note that every `lambda` option is executed in the context of the counter instance. You can access the model instance under the model instance name. For instance `user` for a `User` model.
+
+
 | Parameter  | Type          | Description                                                 |
 |------------|---------------|-------------------------------------------------------------|
-| `every`    | Array<:#{model_name}_(created|updated|destroyed)>        | The event(s) that will trigger the counter. Note that the model is deduced from the event name. For instance :user_created will catch every `User.create!`. :user_destroyed will catch every `user.destroy!` |
-| `scopes`   | lambda | This proc should return an array of scopes to take into account. For instance, if a model `Post` has many `authors`, then `-> { post.authors }` would allow you to know the # of post that each author wrote. It is executed as a counter instance. You'll have access to the model instance under the model instance name. For instance `user` for a `User` model.  |
-| `if`      | lambda, optional | This proc should return a boolean. If it returns false, the counter will not be incremented. Here you have access to your instance `.previous_changes` which allows you to increment only upon certain changes. This proc is executed as a counter instance. You'll have access to the model instance under the model instance name. For instance `user` for a `User` model. |
-| `if_async` | lambda, optional | Similar to `if` option, but executed asynchronously, this allows to avoid slowing down `INSERT` and `UPDATE` statements. This is useful when you `if` calls complex model relationships |
-| `decrement_if` | lambda, optional | This proc should return a boolean. If it returns true, then the counter will be decremented instead of incremented. This proc is executed as a counter instance. You'll have access to the model instance under the model instance name. For instance `user` for a `User` model. |
-| `uniq_by` | lambda, optional | This allows you to avoid counting multiple times the same model instance. By default it is uniq on the `id`. Example : if you have a `Post` model that is writter by an `author_id`, you could set `-> { post.author_id}` to know how many authors wrote an article this month. |
+| `every`    | Array<MODELNAME_(created|updated|destroyed)>        | The event(s) that will trigger the counter. The model is deduced from the event name. `:user_created` will catch every `User.create!` |
+| `scopes`   | lambda, optional | Array of scopes to take into account. For instance, if a model `Post` has_many `authors`, then setting `-> { post.authors }` will tell you how many authors wrote a post |
+| `if`      | lambda, optional | Boolean. If it returns false, the counter will not be incremented. You have access to your instance `.previous_changes` which allows you to increment only upon certain changes. |
+| `if_async` | lambda, optional | Boolean. Similar to `if`, but executed asynchronously. Allows to not slow down `INSERT` or `UPDATE` statements. Useful if your `if` calls complex model relationships |
+| `decrement_if` | lambda, optional | Boolean. If it returns true, then the counter will be decremented instead of incremented |
+| `uniq_by` | lambda, optional | Won't count the same value twice. By default it is uniq on the `id`. Example use case: if a `Post` is written by an `author_id`, you could set `-> { post.author_id}` to know how many authors wrote an article this month |
 
 
 ## Class methods
