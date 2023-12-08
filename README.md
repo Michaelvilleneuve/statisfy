@@ -1,5 +1,6 @@
 # Statisfy
 
+[![Build](https://github.com/Michaelvilleneuve/statisfy/actions/workflows/main.yml/badge.svg)](https://github.com/Michaelvilleneuve/statisfy/actions)
 [![Gem Version](https://badge.fury.io/rb/statisfy.svg)](https://badge.fury.io/rb/statisfy)
 
 This gem allows you to easily create performant statistics for your ActiveRecord models without having to write and run complex SQL queries.
