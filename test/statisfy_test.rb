@@ -216,4 +216,17 @@ class StatisfyTest < ActiveSupport::TestCase
     assert_equal 3000, SalaryPerUser.average
     assert_equal 9000, SalaryPerUser.sum
   end
+
+  test "decrement_on_destroy option allows to decrement a counter when a resource is destroyed" do
+    class UserCounter
+      include Statisfy::Counter
+
+      count every: :user_created, decrement_on_destroy: true
+    end
+
+    User.create!
+    assert_equal UserCounter.value, 1
+    User.last.destroy
+    assert_equal UserCounter.value, 0
+  end
 end

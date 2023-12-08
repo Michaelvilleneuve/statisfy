@@ -1,3 +1,4 @@
+require "pry"
 module Statisfy
   module Subscriber
     def self.included(klass)
@@ -5,8 +6,7 @@ module Statisfy
     end
 
     module ClassMethods
-      def catch_events(*event_names, **options)
-        define_method(:should_run?, &options[:if] || -> { true })
+      def catch_events(*event_names)
         [*event_names].flatten.map do |event_name|
           model_and_event_from_event_name(event_name).tap do |model, event|
             append_callback_to_model(model, event)
@@ -17,18 +17,33 @@ module Statisfy
 
       def append_callback_to_model(model, event)
         listener = self
+
+        statisfy_counter = lambda {
+          counter = listener.new
+          counter.subject = self
+          counter
+        }
+
+        trigger_event = lambda { |statisfy_trigger|
+          if listener.respond_to?(Statisfy.configuration.default_async_method)
+            listener.send(Statisfy.configuration.default_async_method, attributes.merge(statisfy_trigger:))
+          else
+            instance_exec(&statisfy_counter).perform(attributes.merge(statisfy_trigger:))
+          end
+        }
+
         model.class_eval do
-          after_commit on: event do
-            counter = listener.new
-            counter.subject = self
+          after_commit on: [:destroy] do
+            counter = instance_exec(&statisfy_counter)
+            next unless counter.decrement_on_destroy? || counter.respond_to?(:on_destroy)
 
-            next unless counter.should_run?
+            instance_exec(:destroy, &trigger_event)
+          end
 
-            if listener.respond_to?(Statisfy.configuration.default_async_method)
-              listener.send(Statisfy.configuration.default_async_method, attributes)
-            else
-              counter.perform(attributes)
-            end
+          after_commit on: [event] do
+            next unless instance_exec(&statisfy_counter).should_run?
+
+            instance_exec(event, &trigger_event)
           end
         end
       end
@@ -64,7 +79,6 @@ module Statisfy
     # This is the method that will be called when an event is triggered
     # It will be executed in the background by Sidekiq
     #
-    # @resource_or_hash [Hash] The attributes of the model that triggered the event + the previous_changes
     #
     def perform(resource_or_hash)
       @params = resource_or_hash

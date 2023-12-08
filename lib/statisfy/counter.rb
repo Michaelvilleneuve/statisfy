@@ -27,7 +27,7 @@ module Statisfy
       def count(args = {})
         raise ArgumentError, "You must provide at least one event" if args[:every].blank?
 
-        catch_events(*args[:every], if: args[:if] || -> { true })
+        catch_events(*args[:every])
         apply_default_counter_options(args)
         const_set(:COUNTER_TYPE, args[:type] || :increment)
         class_eval(&Statisfy.configuration.append_to_counters) if Statisfy.configuration.append_to_counters.present?
@@ -45,6 +45,8 @@ module Statisfy
         define_method(:decrement?, args[:decrement_if] || -> { false })
         define_method(:value, args[:value] || -> {})
         define_method(:should_run?, args[:if] || -> { true })
+        define_method(:on_destroy, args[:on_destroy]) if args[:on_destroy].present?
+        define_method(:decrement_on_destroy?, args[:decrement_on_destroy].is_a?(Proc) ? args[:decrement_on_destroy] : -> { args[:decrement_on_destroy] || false })
       end
 
       #
@@ -168,6 +170,7 @@ module Statisfy
     end
 
     def process_event
+      return if destroy_event_handled?
       return unless if_async
 
       if value.present?
@@ -175,6 +178,20 @@ module Statisfy
       else
         decrement? ? decrement : increment
       end
+    end
+
+    def destroy_event_handled?
+      return false unless params[:statisfy_trigger] == :destroy
+
+      if decrement_on_destroy?
+        decrement
+        return true
+      elsif respond_to?(:on_destroy)
+        on_destroy
+        return true
+      end
+
+      false
     end
 
     #

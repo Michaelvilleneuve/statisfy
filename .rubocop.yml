@@ -13,6 +13,9 @@ Metrics/AbcSize:
 Metrics/BlockLength:
   Enabled: false
 
+Style/MultilineIfModifier:
+  Enabled: false
+
 Metrics/CyclomaticComplexity:
   Enabled: false
 
@@ -36,4 +39,4 @@ Layout/LineLength:
   Max: 120
 
 Metrics/MethodLength:
-  Max: 20
+  Max: 30
