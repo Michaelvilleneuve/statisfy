@@ -155,6 +155,7 @@ This method is used to define a counter.
 | `if_async` | lambda, optional | Boolean. Similar to `if`, but executed asynchronously. Allows to not slow down `INSERT` or `UPDATE` statements. Useful if your `if` calls complex model relationships |
 | `decrement_if` | lambda, optional | Boolean. If it returns true, then the counter will be decremented instead of incremented |
 | `uniq_by` | lambda, optional | Won't count the same value twice. By default it is uniq on the `id`. Example use case: if a `Post` is written by an `author_id`, you could set `-> { post.author_id}` to know how many authors wrote an article this month |
+| `decrement_on_destroy` | Boolean, optional | Default is true. The counter will be decremented when the model instance is destroyed. |
 
 ### aggregate
 
