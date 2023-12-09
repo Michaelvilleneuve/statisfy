@@ -46,7 +46,9 @@ module Statisfy
         define_method(:value, args[:value] || -> {})
         define_method(:should_run?, args[:if] || -> { true })
         define_method(:on_destroy, args[:on_destroy]) if args[:on_destroy].present?
-        define_method(:decrement_on_destroy?, args[:decrement_on_destroy].is_a?(Proc) ? args[:decrement_on_destroy] : -> { args[:decrement_on_destroy] || false })
+        define_method(:decrement_on_destroy?, args[:decrement_on_destroy].is_a?(Proc) ? args[:decrement_on_destroy] : lambda {
+                                                                                                                        args[:decrement_on_destroy] || true
+                                                                                                                      })
       end
 
       #
@@ -64,12 +66,8 @@ module Statisfy
         if const_get(:COUNTER_TYPE) == :aggregate
           average(scope:, month:)
         else
-          size(scope:, month:)
+          elements_in(scope:, month:).uniq.size
         end
-      end
-
-      def size(scope: nil, month: nil)
-        redis_client.scard(key_for(scope:, month:))
       end
 
       #
@@ -173,11 +171,7 @@ module Statisfy
       return if destroy_event_handled?
       return unless if_async
 
-      if value.present?
-        append(value:)
-      else
-        decrement? ? decrement : increment
-      end
+      decrement? ? decrement : increment
     end
 
     def destroy_event_handled?
@@ -201,29 +195,20 @@ module Statisfy
     def all_counters
       [month_to_set, nil].each do |month|
         scopes_with_global.each do |scope|
-          yield self.class.key_for(scope:, month:), identifier
+          yield self.class.key_for(scope:, month:)
         end
       end
     end
 
     def increment
-      all_counters do |key, id|
-        self.class.redis_client.sadd?(key, id)
+      all_counters do |key|
+        self.class.redis_client.rpush(key, value || identifier)
       end
     end
 
     def decrement
-      all_counters do |key, id|
-        self.class.redis_client.srem?(key, id)
-      end
-    end
-
-    #
-    # To be used to store a list of values instead of a basic counter
-    #
-    def append(value:)
       all_counters do |key|
-        self.class.redis_client.rpush(key, value)
+        self.class.redis_client.lrem(key, 1, value || identifier)
       end
     end
   end

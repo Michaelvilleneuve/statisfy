@@ -182,7 +182,7 @@ class StatisfyTest < ActiveSupport::TestCase
     jean = User.create!(name: "Jean")
     marc = User.create!(name: "Marc")
 
-    class UserCounter
+    class SteveCounter
       include Statisfy::Counter
 
       count every: :user_updated,
@@ -194,12 +194,12 @@ class StatisfyTest < ActiveSupport::TestCase
     jean.update!(name: "Steve")
     marc.update!(name: "Steve")
     
-    assert_equal UserCounter.value, 3
-
+    assert_equal SteveCounter.value, 3
+    
     paul.update!(name: "Paul")
     jean.update!(name: "Jean")
 
-    assert_equal UserCounter.value, 1
+    assert_equal SteveCounter.value, 1
   end
 
   test "aggregate option allows to aggregate instead of increment and get an average" do
