@@ -73,7 +73,7 @@ class StatisfyTest < ActiveSupport::TestCase
       count every: :user_created, scopes: -> { [user.organisation] }
     end
 
-    every_month = (0..24).map do |i|
+    25.times do |i|
       creation_date = (24 - i).months.ago.beginning_of_month
       between_2_and_5 = rand(2..5)
       
