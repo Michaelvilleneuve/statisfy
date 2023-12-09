@@ -26,7 +26,6 @@ module Statisfy
       # @param month: the month for which you want the value of the counter (optional)
       #
       def value(scope: nil, month: nil)
-        p "HEIN???"
         month = month&.strftime("%Y-%m") if month.present?
         average(scope:, month:)
       end
