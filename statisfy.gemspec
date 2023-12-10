@@ -2,7 +2,7 @@
 
 Gem::Specification.new do |s|
   s.name        = "statisfy"
-  s.version     = "0.0.3"
+  s.version     = "0.0.4"
   s.required_ruby_version = ">= 3.2.0"
   s.date        = "2023-12-07"
   s.summary     = "A performant and flexible counter solution"

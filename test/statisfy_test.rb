@@ -229,4 +229,22 @@ class StatisfyTest < ActiveSupport::TestCase
     User.last.destroy
     assert_equal UserCounter.value, 0
   end
+
+  test "decrement_on_destroy works with custom uniq uniq_by" do
+    class OrganisationsWithUsersCounter
+      include Statisfy::Counter
+
+      count every: :user_created, decrement_on_destroy: true, uniq_by: -> { user.organisation_id }
+    end
+
+    User.create!(organisation_id: 8)
+    User.create!(organisation_id: 8)
+    User.create!(organisation_id: 2)
+
+    assert_equal OrganisationsWithUsersCounter.value, 2
+    User.where(organisation_id: 8).first.destroy
+    assert_equal OrganisationsWithUsersCounter.value, 2
+    User.where(organisation_id: 8).last.destroy
+    assert_equal OrganisationsWithUsersCounter.value, 1
+  end
 end

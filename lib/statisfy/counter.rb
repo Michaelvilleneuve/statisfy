@@ -39,7 +39,7 @@ module Statisfy
       # but the `count` DSL defines them automatically based on the options provided
       #
       def apply_default_counter_options(args)
-        define_method(:identifier, args[:uniq_by] || -> { params["id"] })
+        define_method(:identifier, args[:uniq_by] || -> { nil })
         define_method(:scopes, args[:scopes] || Statisfy.configuration.default_scopes || -> { [] })
         define_method(:if_async, args[:if_async] || -> { true })
         define_method(:decrement?, args[:decrement_if] || -> { false })
@@ -66,8 +66,16 @@ module Statisfy
         if const_get(:COUNTER_TYPE) == :aggregate
           average(scope:, month:)
         else
-          elements_in(scope:, month:).uniq.size
+          size(scope:, month:)
         end
+      end
+
+      def size(scope: nil, month: nil)
+        redis_client.scard(key_for(scope:, month:))
+      end
+
+      def members(scope: nil, month: nil)
+        redis_client.smembers(key_for(scope:, month:))
       end
 
       #
@@ -102,12 +110,13 @@ module Statisfy
       #
       # This is the name of the Redis key that will be used to store the counter
       #
-      def key_for(scope:, month: nil)
+      def key_for(scope:, month: nil, key_value: nil)
         {
           counter: name.demodulize.underscore,
           month:,
           scope_type: scope&.class&.name,
-          scope_id: scope&.id
+          scope_id: scope&.id,
+          key_value:
         }.to_json
       end
 
@@ -171,11 +180,15 @@ module Statisfy
       return if destroy_event_handled?
       return unless if_async
 
-      decrement? ? decrement : increment
+      if value.present?
+        append(value:)
+      else
+        decrement? ? decrement : increment
+      end
     end
 
     def destroy_event_handled?
-      return false unless params[:statisfy_trigger] == :destroy
+      return false unless params[:statisfy_trigger] == :destroy && value.blank?
 
       if decrement_on_destroy?
         decrement
@@ -186,6 +199,14 @@ module Statisfy
       end
 
       false
+    end
+
+    def key_value
+      value || identifier || params["id"]
+    end
+
+    def custom_key_value?
+      identifier.present? || value.present?
     end
 
     #
@@ -202,14 +223,35 @@ module Statisfy
 
     def increment
       all_counters do |key|
-        self.class.redis_client.rpush(key, value || identifier)
+        self.class.redis_client.sadd?(key, key_value)
+        self.class.redis_client.sadd?(uniq_by_ids(key), params["id"]) if custom_key_value?
       end
     end
 
+    #
+    # To be used to store a list of values instead of a basic counter
+    #
+    def append(value:)
+      all_counters do |key|
+        self.class.redis_client.rpush(key, value)
+      end
+    end
+
+    # rubocop:disable Metrics/AbcSize
     def decrement
       all_counters do |key|
-        self.class.redis_client.lrem(key, 1, value || identifier)
+        if custom_key_value?
+          self.class.redis_client.srem?(uniq_by_ids(key), params["id"])
+          self.class.redis_client.srem?(key, key_value) if self.class.redis_client.scard(uniq_by_ids(key)).zero?
+        else
+          self.class.redis_client.srem?(key, key_value)
+        end
       end
+    end
+    # rubocop:enable Metrics/AbcSize
+
+    def uniq_by_ids(key)
+      "#{key};#{key_value}"
     end
   end
 end
