@@ -13,6 +13,9 @@ Metrics/AbcSize:
 Metrics/BlockLength:
   Enabled: false
 
+Security/Eval:
+  Enabled: false
+
 Style/MultilineIfModifier:
   Enabled: false
 

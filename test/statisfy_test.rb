@@ -247,4 +247,20 @@ class StatisfyTest < ActiveSupport::TestCase
     User.where(organisation_id: 8).last.destroy
     assert_equal OrganisationsWithUsersCounter.value, 1
   end
+
+  test "it can count on a model directly" do
+    class ::User < ActiveRecord::Base
+      include Statisfy::Model
+
+      count every: :user_created, as: :organisations_with_users, uniq_by: -> { user.organisation_id }
+      count every: :user_created, as: :number_of_users
+    end
+
+    User.create!(organisation_id: 8)
+    User.create!(organisation_id: 8)
+    User.create!(organisation_id: 2)
+
+    assert_equal User.statisfy.number_of_users.value, 3
+    assert_equal User.statisfy.organisations_with_users.value, 2
+  end
 end
