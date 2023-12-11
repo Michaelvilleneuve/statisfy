@@ -260,7 +260,7 @@ class StatisfyTest < ActiveSupport::TestCase
     User.create!(organisation_id: 8)
     User.create!(organisation_id: 2)
 
-    assert_equal User.statisfy.number_of_users.value, 3
-    assert_equal User.statisfy.organisations_with_users.value, 2
+    assert_equal User.number_of_users.value, 3
+    assert_equal User.organisations_with_users.value, 2
   end
 end

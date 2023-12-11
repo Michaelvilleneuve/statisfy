@@ -23,11 +23,11 @@ module Statisfy
             #{source || "count(#{params})"}
           end
         RUBY
-        @statisfy[params[:as]] = ::Statisfy.const_get(class_name)
-      end
-
-      def statisfy
-        OpenStruct.new(@statisfy)
+        class_eval <<-RUBY, __FILE__, __LINE__ + 1
+          def self.#{params[:as]}
+            ::Statisfy::#{class_name}
+          end
+        RUBY
       end
     end
   end
