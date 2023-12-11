@@ -72,7 +72,6 @@ User.create(name: "John Doe")
 UsersCreated.value
 # => 1
 
-
 # You can also get the count for a specific month
 UsersCreated.value(month: Time.now)
 
@@ -86,6 +85,23 @@ UsersCreated.values_grouped_by_month(stop_at: Time.now.last_month.end_of_month, 
 #   ... 
 # }
 ```
+
+If you prefer you can also `include Statisfy::Model` in your model and define the counter directly on the model.
+
+```ruby
+class User < ApplicationRecord
+  include Statisfy::Model
+
+  count every: :user_created, as: :number_of_users_created
+end
+
+User.create(name: "John Doe")
+
+# And then get the count like this:
+User.number_of_users_created.value
+# => 1
+```
+
 
 ### Scoped counter
 
