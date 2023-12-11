@@ -254,13 +254,15 @@ class StatisfyTest < ActiveSupport::TestCase
 
       count every: :user_created, as: :organisations_with_users, uniq_by: -> { user.organisation_id }
       count every: :user_created, as: :number_of_users
+      aggregate every: :user_created, as: :average_salary, value: -> { user.salary }
     end
 
-    User.create!(organisation_id: 8)
-    User.create!(organisation_id: 8)
-    User.create!(organisation_id: 2)
+    User.create!(organisation_id: 8, salary: 2000)
+    User.create!(organisation_id: 8, salary: 3000)
+    User.create!(organisation_id: 2, salary: 4000)
 
     assert_equal User.number_of_users.value, 3
     assert_equal User.organisations_with_users.value, 2
+    assert_equal User.average_salary.value, 3000
   end
 end

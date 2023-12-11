@@ -17,7 +17,7 @@ module Statisfy
 
         eval <<-RUBY, binding, __FILE__, __LINE__ + 1
           class ::Statisfy::#{class_name}
-            include Statisfy::Counter
+            include Statisfy::#{params[:type] == :aggregate ? "Aggregate" : "Counter"}
           end
         RUBY
 
@@ -29,7 +29,10 @@ module Statisfy
 
         "::Statisfy::#{class_name}".constantize.send(__method__, **params)
       end
-      alias aggregate count
+
+      def aggregate(params)
+        count(params.merge(type: :aggregate))
+      end
     end
   end
 end
