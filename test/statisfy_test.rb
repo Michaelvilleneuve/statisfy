@@ -252,9 +252,9 @@ class StatisfyTest < ActiveSupport::TestCase
     class ::User < ActiveRecord::Base
       include Statisfy::Model
 
-      count every: :user_created, as: :organisations_with_users, uniq_by: -> { user.organisation_id }
-      count every: :user_created, as: :number_of_users
-      aggregate every: :user_created, as: :average_salary, value: -> { user.salary }
+      statisfy_count every: :user_created, as: :organisations_with_users, uniq_by: -> { user.organisation_id }
+      statisfy_count every: :user_created, as: :number_of_users
+      statisfy_aggregate every: :user_created, as: :average_salary, value: -> { user.salary }
     end
 
     User.create!(organisation_id: 8, salary: 2000)

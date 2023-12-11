@@ -10,7 +10,7 @@ module Statisfy
     end
 
     module ClassMethods
-      def count(params)
+      def statisfy_count(params)
         raise ArgumentError, "Missing :as parameter" unless params[:as]
 
         class_name = params[:as].to_s.camelize
@@ -27,11 +27,11 @@ module Statisfy
           end
         RUBY
 
-        "::Statisfy::#{class_name}".constantize.send(__method__, **params)
+        "::Statisfy::#{class_name}".constantize.send(:count, **params)
       end
 
-      def aggregate(params)
-        count(params.merge(type: :aggregate))
+      def statisfy_aggregate(params)
+        statisfy_count(params.merge(type: :aggregate))
       end
     end
   end
