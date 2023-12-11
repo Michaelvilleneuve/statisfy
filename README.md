@@ -87,19 +87,27 @@ UsersCreated.values_grouped_by_month(stop_at: Time.now.last_month.end_of_month, 
 ```
 
 If you prefer you can also `include Statisfy::Model` in your model and define the counter directly on the model.
+In this case you'll have to prefix APIs with `statisfy_` to avoid conflicts with ActiveRecord methods.
+
+You'll also need to specify the `:as` option to give a name to your counter which will be used to access the value.
 
 ```ruby
 class User < ApplicationRecord
   include Statisfy::Model
 
-  count every: :user_created, as: :number_of_users_created
+  statisfy_count every: :user_created, as: :number_of_users_created
+  statisfy_aggregate every: :user_update, as: :average_salary, value: -> { salary }
 end
 
-User.create(name: "John Doe")
+User.create(name: "John Doe", salary: 1000)
+User.create(name: "John Troe", salary: 2000)
 
 # And then get the count like this:
 User.number_of_users_created.value
-# => 1
+# => 2
+
+User.average_salary.value
+# => 1500
 ```
 
 
