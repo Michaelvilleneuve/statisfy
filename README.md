@@ -246,6 +246,80 @@ This method returns the average of the values of the counter.
 | `scope`    | ActiveRecord instance, optional | The scope of the counter. See scope option above |
 | `month`    | Date, optional| The month for which you want to get the value. If not provided, returns the value for the current month. |
 
+## Initializing a counter
+
+If you want to count on a model with existing data, you'll need to initialize the counter.
+Initializing a counter is done by manually triggering an increment of counters. Basically it's a matter of doing this:
+
+```ruby
+# Given a User class
+class User < ActiveRecord::Base
+end
+
+# And a counter
+class UsersCreated
+  include Statisfy::Counter
+
+  count every: :user_created
+end
+
+# You can initialize the counter like this
+User.all.find_each do |user|
+  UsersCreated.trigger_with(user)
+end
+```
+
+Users created in the meantime and in the future will be automatically counted anyway.
+
+### Initializing scoped counters
+
+If your data is scoped with some of your model associations, don't forget to include the associated models to speed up the initialization:
+
+```ruby
+class User < ActiveRecord::Base
+  belongs_to :organisation
+  belongs_to :department
+end
+
+class UsersCreated
+  include Statisfy::Counter
+
+  count every: :user_created,
+        scopes: -> { [user.organisation, user.department] }
+end
+
+User.all.includes(:organisation, :department).find_each do |user|
+  UsersCreated.trigger_with(user)
+end
+```
+
+### Initializing counters with conditions
+
+If you need to increment only some instances, the `if` option of your counter will automatically bypass the instances not matching the condition.
+
+But if your counter requires conditions only present during updates, like coming from `.previous_changes`, since this data is not available during initialization, you'll need to add that condition to the request manually, and also skip validations.
+
+For instance, consider the following counter:
+```ruby
+class NumberOfActiveUsers
+  include Statisfy::Counter
+
+  count every: :user_created,
+        if: -> { user.previous_changes[:status].present? && user.status == "active" }
+end
+```
+
+You'll need to initialize the counter like this:
+
+```ruby
+# Retrieve all users matching the condition
+User.where(status: "active").find_each do |user|
+  # Skip validations to avoid running the `if` condition
+  # This is safe because we know that all given users match the condition
+  NumberOfActiveUsers.trigger_with(user, skip_validation: true)
+end
+```
+
 ## Development
 
 After checking out the repo, run `bundle` and the `bundle rake` to run the test suite.
