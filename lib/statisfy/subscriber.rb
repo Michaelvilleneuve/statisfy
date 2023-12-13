@@ -69,7 +69,7 @@ module Statisfy
 
         define_method(instance_name) do
           model = instance_name.camelize.constantize
-          @subject ||= model.find_by(id: params["id"])
+          @subject ||= @params.instance_of?(model) ? @params : model.find_by(id: params["id"])
         end
         alias_method :subject, instance_name
       end
