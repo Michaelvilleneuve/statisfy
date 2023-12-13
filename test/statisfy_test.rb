@@ -135,7 +135,7 @@ class StatisfyTest < ActiveSupport::TestCase
     assert_equal NumberOfSteveCounter.value, 2
   end
 
-  test "initialize_with option allows to initialize a counter when a table wasn't empty" do
+  test "trigger_with option allows to initialize a counter when a table wasn't empty" do
     5.times { User.create! }
     class UserCreated
       include Statisfy::Counter
@@ -144,13 +144,13 @@ class StatisfyTest < ActiveSupport::TestCase
     end
     
     User.find_each do |user|
-      UserCreated.initialize_with(user)
+      UserCreated.trigger_with(user)
     end
 
     assert_equal UserCreated.value, 5
   end
 
-  test "initialize_with can skip if validations" do
+  test "trigger_with can skip if validations" do
     3.times { User.create!(name: "Steve") }
     2.times { User.create!(name: "Bill") }
     Redis.new.flushall
@@ -163,14 +163,14 @@ class StatisfyTest < ActiveSupport::TestCase
     assert_equal UserCreated.value, 0
     
     User.where(name: "Steve").find_each do |user|
-      UserCreated.initialize_with(user, skip_validation: false)
+      UserCreated.trigger_with(user, skip_validation: false)
     end
 
     # Since previous_changes is missing when initializing, validation fails
     assert_equal UserCreated.value, 0
 
     User.where(name: "Steve").find_each do |user|
-      UserCreated.initialize_with(user, skip_validation: true)
+      UserCreated.trigger_with(user, skip_validation: true)
     end
 
     # Skipping validations allows to initialize the counter

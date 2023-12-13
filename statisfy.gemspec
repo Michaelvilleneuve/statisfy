@@ -2,9 +2,9 @@
 
 Gem::Specification.new do |s|
   s.name        = "statisfy"
-  s.version     = "0.0.7"
+  s.version     = "0.0.8"
   s.required_ruby_version = ">= 3.2.0"
-  s.date        = "2023-12-07"
+  s.date        = "2023-12-13"
   s.summary     = "A performant and flexible counter solution"
   s.description = "A performant and flexible counter solution that allows to make statistics on your models"
   s.authors     = ["Michaël Villeneuve"]

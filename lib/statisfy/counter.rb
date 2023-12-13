@@ -39,16 +39,12 @@ module Statisfy
       # but the `count` DSL defines them automatically based on the options provided
       #
       def apply_default_counter_options(args)
-        define_method(:identifier, args[:uniq_by] || -> { nil })
+        define_method(:identifier, args[:value] || args[:uniq_by] || -> { nil })
         define_method(:scopes, args[:scopes] || Statisfy.configuration.default_scopes || -> { [] })
         define_method(:if_async, args[:if_async] || -> { true })
         define_method(:decrement?, args[:decrement_if] || -> { false })
-        define_method(:value, args[:value] || -> {})
         define_method(:should_run?, args[:if] || -> { true })
-        define_method(:on_destroy, args[:on_destroy]) if args[:on_destroy].present?
-        define_method(:decrement_on_destroy?, args[:decrement_on_destroy].is_a?(Proc) ? args[:decrement_on_destroy] : lambda {
-                                                                                                                        args[:decrement_on_destroy] || true
-                                                                                                                      })
+        define_method(:decrement_on_destroy?, -> { args[:decrement_on_destroy] != false })
       end
 
       #
@@ -68,6 +64,10 @@ module Statisfy
         else
           size(scope:, month:)
         end
+      end
+
+      def aggregate_counter?
+        const_get(:COUNTER_TYPE) == :aggregate
       end
 
       def size(scope: nil, month: nil)
@@ -128,7 +128,7 @@ module Statisfy
       # This allows to run a counter increment manually
       # It is useful when you want to backfill counters
       #
-      def initialize_with(resource, options = {})
+      def trigger_with(resource, options = {})
         counter = new
         counter.params = resource
 
@@ -177,36 +177,22 @@ module Statisfy
     end
 
     def process_event
-      return if destroy_event_handled?
+      return decrement if can_decrement_on_destroy?
       return unless if_async
 
-      if value.present?
-        append(value:)
+      if self.class.aggregate_counter?
+        append
       else
         decrement? ? decrement : increment
       end
     end
 
-    def destroy_event_handled?
-      return false unless params[:statisfy_trigger] == :destroy && value.blank?
-
-      if decrement_on_destroy?
-        decrement
-        return true
-      elsif respond_to?(:on_destroy)
-        on_destroy
-        return true
-      end
-
-      false
+    def can_decrement_on_destroy?
+      params[:statisfy_trigger] == :destroy && !self.class.aggregate_counter? && decrement_on_destroy?
     end
 
-    def key_value
-      value || identifier || params["id"]
-    end
-
-    def custom_key_value?
-      identifier.present? || value.present?
+    def value
+      identifier || params["id"]
     end
 
     #
@@ -223,15 +209,19 @@ module Statisfy
 
     def increment
       all_counters do |key|
-        self.class.redis_client.sadd?(key, key_value)
-        self.class.redis_client.sadd?(uniq_by_ids(key), params["id"]) if custom_key_value?
+        self.class.redis_client.sadd?(key, value)
+
+        # When setting a uniq_by option, we use this set to keep track of the number of unique instances
+        # with the same identifier.
+        # When there are no more instances with this identifier, we can decrement the counter
+        self.class.redis_client.sadd?(key_for_instance_ids(key), params["id"]) if identifier.present?
       end
     end
 
     #
     # To be used to store a list of values instead of a basic counter
     #
-    def append(value:)
+    def append
       all_counters do |key|
         self.class.redis_client.rpush(key, value)
       end
@@ -240,18 +230,29 @@ module Statisfy
     # rubocop:disable Metrics/AbcSize
     def decrement
       all_counters do |key|
-        if custom_key_value?
-          self.class.redis_client.srem?(uniq_by_ids(key), params["id"])
-          self.class.redis_client.srem?(key, key_value) if self.class.redis_client.scard(uniq_by_ids(key)).zero?
+        if identifier.present?
+          self.class.redis_client.srem?(key_for_instance_ids(key), params["id"])
+          self.class.redis_client.srem?(key, value) if no_more_instances_with_this_identifier?(key)
         else
-          self.class.redis_client.srem?(key, key_value)
+          self.class.redis_client.srem?(key, value)
         end
       end
     end
     # rubocop:enable Metrics/AbcSize
 
-    def uniq_by_ids(key)
-      "#{key};#{key_value}"
+    def no_more_instances_with_this_identifier?(key)
+      self.class.redis_client.scard(key_for_instance_ids(key)).zero?
+    end
+
+    #
+    # This redis key is used when setting a uniq_by. It stores the list of ids of the main resource (e.g. User)
+    # in order to count the number of unique instances with the same identifier
+    #
+    # When the associated array becomes empty, it means that we can
+    # decrement the counter because there are no more instances associated with this identifier
+    #
+    def key_for_instance_ids(key)
+      JSON.parse(key).merge("subject_id" => identifier).to_json
     end
   end
 end
