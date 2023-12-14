@@ -180,6 +180,7 @@ This method is used to define a counter.
 | `decrement_if` | lambda, optional | Boolean. If it returns true, then the counter will be decremented instead of incremented |
 | `uniq_by` | lambda, optional | Won't count the same value twice. By default it is uniq on the `id`. Example use case: if a `Post` is written by an `author_id`, you could set `-> { post.author_id}` to know how many authors wrote an article this month |
 | `decrement_on_destroy` | Boolean, optional | Default is true. The counter will be decremented when the model instance is destroyed. |
+| `date_override` | DateTime, optional | Default is `instance.created_at`. |
 
 ### aggregate
 

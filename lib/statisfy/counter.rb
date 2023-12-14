@@ -45,6 +45,7 @@ module Statisfy
         define_method(:decrement?, args[:decrement_if] || -> { false })
         define_method(:should_run?, args[:if] || -> { true })
         define_method(:decrement_on_destroy?, -> { args[:decrement_on_destroy] != false })
+        define_method(:month_to_set, args[:date_override] || -> { params["created_at"] })
       end
 
       #
@@ -172,10 +173,6 @@ module Statisfy
       scopes.flatten.compact << nil
     end
 
-    def month_to_set
-      params["created_at"].to_date.strftime("%Y-%m")
-    end
-
     def process_event
       return decrement if can_decrement_on_destroy?
       return unless if_async
@@ -200,7 +197,7 @@ module Statisfy
     # (in general the Department(s) and Organisation(s) for both the current month and the global counter)
     #
     def all_counters
-      [month_to_set, nil].each do |month|
+      [month_to_set.to_date.strftime("%Y-%m"), nil].each do |month|
         scopes_with_global.each do |scope|
           yield self.class.key_for(scope:, month:)
         end
