@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    statisfy (0.0.9)
+    statisfy (0.0.10)
 
 GEM
   remote: https://rubygems.org/

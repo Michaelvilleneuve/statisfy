@@ -22,7 +22,7 @@ module Statisfy
 
         if start_at.present? || scope&.created_at.present?
           start_at ||= scope.created_at
-          n_months = (Time.zone.today.year + Time.zone.today.month) - (start_at.year + start_at.month)
+          n_months = (Time.zone.today.year * 12 + Time.zone.today.month) - (start_at.year * 12 + start_at.month)
         end
 
         relevant_months = (0..n_months).map do |i|
